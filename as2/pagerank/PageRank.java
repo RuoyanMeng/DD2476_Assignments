@@ -19,7 +19,8 @@ public class PageRank {
         }
 
         public void print() {
-            System.out.println(docName + ": " + probability);
+            String value = String.format("%.5f", probability);
+            System.out.println(docName + ": " + value );
         }
     }
 
