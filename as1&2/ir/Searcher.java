@@ -38,6 +38,7 @@ public class Searcher {
     }
 
     int MAX_NUMBER_OF_DOCS = 2000000;
+    double w1 = 0.007;
 
     /**
      * Searches the index for postings matching the query.
@@ -111,15 +112,25 @@ public class Searcher {
                 if (query.size() != 0) {
                     for (int i = 0; i < _list.size(); i++) {
                         String filename = Index.docNames.get(_list.get(i).docID);
-                        filename = filename.substring(filename.lastIndexOf("/")+1);
-                        //System.err.println(filename);
+                        filename = filename.substring(filename.lastIndexOf("/") + 1);
+                        // System.err.println(filename);
                         double score = pageRank.get(filename);
                         _list.get(i).setScore(score);
                     }
                     _list.sort();
                 }
                 result = _list;
-            } else {
+            } else if (rankingType == RankingType.HITS) {
+
+                HITSRanker hr = new HITSRanker("pagerank/linksDavis.txt", "pagerank/davisTitles.txt", null);
+                //hr.rank();
+                _list = hr.rank(_list);
+                _list.sort();
+                result = _list;
+                //result.deduplication();
+            } 
+            //tf_idf and combination
+            else {
                 Hashtable<Integer, ArrayList<Double>> tf = new Hashtable<Integer, ArrayList<Double>>();
                 // initialize hashtable of term freq - tf
                 for (int i = 0; i < _list.size(); i++) {
@@ -146,22 +157,22 @@ public class Searcher {
                     _list.sort();
                 }
 
-                if(rankingType == RankingType.TF_IDF){
+                if (rankingType == RankingType.TF_IDF) {
                     result = _list;
-                }else if(rankingType == RankingType.COMBINATION ){
+                } else if (rankingType == RankingType.COMBINATION) {
                     if (query.size() != 0) {
                         for (int i = 0; i < _list.size(); i++) {
                             String filename = Index.docNames.get(_list.get(i).docID);
-                            filename = filename.substring(filename.lastIndexOf("/")+1);
-                            //here 
-                            double score = pageRank.get(filename)*(_list.get(i).score);
+                            filename = filename.substring(filename.lastIndexOf("/") + 1);
+                            // here
+                            double score = w1 * pageRank.get(filename) + (1 - w1) * (_list.get(i).score);
                             _list.get(i).setScore(score);
                         }
                         _list.sort();
                     }
                     result = _list;
                 }
-                
+
             }
 
         }
@@ -190,6 +201,7 @@ public class Searcher {
             ArrayList<Double> _tf_idf = tf.get(_list.get(i).docID);
             for (int n = 0; n < _tf_idf.size(); n++) {
                 score = score + _tf_idf.get(n) / Index.docLengths.get(_list.get(i).docID);
+                
             }
             _list.get(i).setScore(score);
             // System.err.println(_list.get(i).score);
@@ -214,7 +226,7 @@ public class Searcher {
                 Double pagerankValue = Double.parseDouble(line.substring(index1 + 1, index2));
                 pageRank.put(docTitle, pagerankValue);
                 fileIndex++;
-                //System.err.println(pageRank.get(docTitle));
+                // System.err.println(pageRank.get(docTitle));
             }
             if (fileIndex >= MAX_NUMBER_OF_DOCS) {
                 System.err.print("stopped reading since documents table is full. ");

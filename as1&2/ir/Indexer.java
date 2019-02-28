@@ -99,5 +99,33 @@ public class Indexer {
         if (kgIndex != null)
             kgIndex.insert(token);
     }
+
+    //read link to doc ID file
+    public void linkToDoc(){
+        int fileIndex = 0;
+        String filename = "linkIdtoDocId.txt";
+		try {
+            
+			System.err.print("Reading titles file... ");
+			BufferedReader in = new BufferedReader(new FileReader(filename));
+			String line;
+			while ((line = in.readLine()) != null ) {
+				int index = line.indexOf(";");
+				int linkID = Integer.valueOf(line.substring(0, index));
+                int docID = Integer.valueOf(line.substring(index + 1));
+                Index.linkToDocID.put(linkID,docID);
+				fileIndex++;
+				// System.err.println(docTitle);
+			}
+			
+				System.err.print("done. ");
+			
+		} catch (FileNotFoundException e) {
+			System.err.println("File " + filename + " not found!");
+		} catch (IOException e) {
+			System.err.println("Error reading file " + filename);
+		}
+		System.err.println("Read " + fileIndex + " number of documents");
+    }
 }
 

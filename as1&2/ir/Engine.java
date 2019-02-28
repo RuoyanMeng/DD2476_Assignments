@@ -108,6 +108,7 @@ public class Engine {
         } else {
             gui.displayInfoText("Index is loaded from disk");
         }
+        indexer.linkToDoc();
     }
 
 
