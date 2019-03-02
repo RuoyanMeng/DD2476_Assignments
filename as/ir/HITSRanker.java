@@ -109,6 +109,7 @@ public class HITSRanker {
     private String getFileName(String path) {
         String result = "";
         StringTokenizer tok = new StringTokenizer(path, "\\/");
+        //System.err.println(path);
         while (tok.hasMoreTokens()) {
             result = tok.nextToken();
         }
@@ -209,8 +210,6 @@ public class HITSRanker {
 
         double sumHub = 0;
         double sumAuthority = 0;
-        // double maxHub = 0;
-        // double maxAuthority = 0;
 
         double error = Integer.MAX_VALUE;
 
@@ -249,29 +248,12 @@ public class HITSRanker {
 
             }
 
-            // maxHub = 0;
-            // maxAuthority = 0;
-            // for (int k = 0; k < pageNum; k++) {
-            //     if (newHubs[k] > maxHub) {
-            //         maxHub = newHubs[k];
-            //     }
-
-            //     if (newAuthorities[k] > maxAuthority) {
-            //         maxAuthority = newAuthorities[k];
-            //     }
-            // }
-            // System.err.println(sumHub);
-            // System.err.println(sumAuthority);
-
             error = 0;
             // normalize
             for (int k = 0; k < pageNum; k++) {
                 newHubs[k] /= Math.sqrt(sumHub);
                 newAuthorities[k] /= Math.sqrt(sumAuthority);
-                // newHubs[k] /= maxHub;
-                // newAuthorities[k] /= maxAuthority;
                 error += Math.abs(newHubs[k] - hubs.get(k));
-                // + Math.abs(newAuthorities[k] - authorities.get(k))
                 hubs.put(k, newHubs[k]);
                 authorities.put(k, newAuthorities[k]);
             }

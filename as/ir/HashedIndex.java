@@ -35,7 +35,7 @@ public class HashedIndex implements Index {
             index.put(token, new PostingsList());
 
         }
-        index.get(token).addElements(docID, offset, 0);
+        index.get(token).addElements(docID, offset, 0.0);
 
     }
 

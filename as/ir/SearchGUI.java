@@ -303,6 +303,7 @@ public class SearchGUI extends JFrame {
 
                     for (int j = 0, sz = engine.dirNames.size(); j < sz; j++) {
                         File curDir = new File(engine.dirNames.get(j));
+                        //System.err.println(curDir);
                         fqueue.offer(curDir.toString());
 
                         String[] directories = curDir.list(new FilenameFilter() {
@@ -311,8 +312,11 @@ public class SearchGUI extends JFrame {
                                 return new File(current, name).isDirectory();
                             }
                         });
+                        //System.err.println(directories);
+
 
                         for (String dir : directories) {
+                            
                             fqueue.offer(new File(curDir.toString(), dir).toString());
                         }
                     }

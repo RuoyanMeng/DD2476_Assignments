@@ -55,10 +55,11 @@ public class PostingsList {
     }
 
     //insert elements into PersistentHashedIndex PostingsList
-    public void addPersistentElements(int docID, int offset) {
+    public void addPersistentElements(int docID, int offset, double score) {
         PostingsEntry entry = new PostingsEntry();
         entry.docID = docID;
         entry.offset = offset;
+        entry.score = score;
 
         list.add(entry);
     }
