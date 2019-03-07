@@ -25,6 +25,10 @@ public interface Index {
     /** Mapping from link ID to Doc ID */
     public HashMap<Integer,Integer> linkToDocID = new HashMap<Integer,Integer>();
 
+    /** Mapping from document identifiers to term freq */
+    public HashMap<Integer, HashMap<String, Integer>> termFreq = new HashMap<Integer, HashMap<String, Integer>>();
+    public HashMap<String, Integer> docFreq = new HashMap<String, Integer>();
+    
     /** Inserts a token into the index. */
     public void insert( String token, int docID, int offset );
 

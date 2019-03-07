@@ -123,13 +123,13 @@ public class Searcher {
             } else if (rankingType == RankingType.HITS) {
 
                 HITSRanker hr = new HITSRanker("pagerank/linksDavis.txt", "pagerank/davisTitles.txt", null);
-                //hr.rank();
+                // hr.rank();
                 _list = hr.rank(_list);
                 _list.sort();
                 result = _list;
-                //result.deduplication();
-            } 
-            //tf_idf and combination
+                // result.deduplication();
+            }
+            // tf_idf and combination
             else {
                 Hashtable<Integer, ArrayList<Double>> tf = new Hashtable<Integer, ArrayList<Double>>();
                 // initialize hashtable of term freq - tf
@@ -149,6 +149,8 @@ public class Searcher {
                         list = index.getPostings(token);
                         double idf = 0.0;
                         idf = idf(list);
+                        // System.err.println("-"+idf);
+                        idf = idf * query.queryterm.get(i).weight;
                         // System.err.println(idf);
                         list._tf_idf(tf, idf, _list, i);
                     }
@@ -181,7 +183,7 @@ public class Searcher {
 
     public double idf(PostingsList list) {
         double idf;
-        int df = 0;
+        int df = 1;
         for (int i = 0; i < list.size() - 1; i++) {
             if (list.get(i).docID == list.get(i + 1).docID) {
                 df = df + 0;
@@ -201,7 +203,7 @@ public class Searcher {
             ArrayList<Double> _tf_idf = tf.get(_list.get(i).docID);
             for (int n = 0; n < _tf_idf.size(); n++) {
                 score = score + _tf_idf.get(n) / Index.docLengths.get(_list.get(i).docID);
-                
+
             }
             _list.get(i).setScore(score);
             // System.err.println(_list.get(i).score);

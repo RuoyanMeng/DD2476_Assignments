@@ -164,6 +164,7 @@ public class PostingsList {
         return result;
     }
 
+    //term freq and tf_idf value
     public void _tf_idf(Hashtable<Integer,ArrayList<Double>> tf,double idf,PostingsList _list, int count){
         Hashtable<Integer, ArrayList<Integer>> table = new Hashtable<Integer, ArrayList<Integer>>();
         for (int i = 0; i < list.size(); i++) {
