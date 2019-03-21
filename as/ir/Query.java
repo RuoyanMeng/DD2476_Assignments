@@ -72,6 +72,10 @@ public class Query {
         }
     }
 
+    public void addTerm(String term){
+        queryterm.add(new QueryTerm(term, 1.0));
+    }
+
     
 
     /**

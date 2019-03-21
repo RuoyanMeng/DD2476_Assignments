@@ -7,11 +7,10 @@
 
 package ir;
 
-import java.util.Hashtable;
-
 //import com.sun.xml.internal.ws.api.streaming.XMLStreamReaderFactory.Default;
 
-import java.util.ArrayList;
+import java.util.*;
+import java.util.Collections.*;
 import java.io.*;
 
 /**
@@ -46,7 +45,6 @@ public class Searcher {
      * @return A postings list representing the result of the query.
      */
     public PostingsList search(Query query, QueryType queryType, RankingType rankingType) {
-
         PostingsList result = new PostingsList();
 
         // INTERSECTION_QUERY
@@ -56,15 +54,24 @@ public class Searcher {
                 for (int i = 0; i < query.size(); i++) {
                     String token = query.queryterm.get(i).term;
                     PostingsList listIntersect = new PostingsList();
+
+                    // Processing Wildcard Queries
+                    PostingsList listWildcard = new PostingsList();
+                    if (token.contains("*")) {
+                        Query _query = new Query();
+                        _query = kgIndex.getWordofWildcard(token);
+                        listWildcard = unionPostinglist(_query);
+                    } else {
+                        listWildcard = index.getPostings(token);
+                    }
+
                     if (list.size() == 0) {
-                        list = index.getPostings(token);
+                        list = listWildcard;
                         if (query.size() == 0) {
                             list = list.intersect(listIntersect);
                         }
-                        // list.deduplication();
                     } else {
-                        listIntersect = index.getPostings(token);
-                        // listIntersect.deduplication();
+                        listIntersect = listWildcard;
                         list = list.intersect(listIntersect);
                     }
                 }
@@ -92,20 +99,7 @@ public class Searcher {
             readPagerank("./PagerankScore.txt");
             PostingsList _list = new PostingsList();
             // union the search results of each term
-            if (query.size() != 0) {
-                for (int i = 0; i < query.size(); i++) {
-                    String token = query.queryterm.get(i).term;
-                    PostingsList listUnion = new PostingsList();
-                    if (_list.size() == 0) {
-                        _list = index.getPostings(token);
-                    } else {
-                        listUnion = index.getPostings(token);
-                        // listIntersect.deduplication();
-                        _list = _list.union(listUnion);
-                    }
-                }
-            }
-            _list.deduplication();
+            _list = unionPostinglist(query);
 
             // switch between different ranking types
             if (rankingType == RankingType.PAGERANK) {
@@ -117,7 +111,7 @@ public class Searcher {
                         double score = pageRank.get(filename);
                         _list.get(i).setScore(score);
                     }
-                    _list.sort();
+                    _list.sortScore();
                 }
                 result = _list;
             } else if (rankingType == RankingType.HITS) {
@@ -125,7 +119,7 @@ public class Searcher {
                 HITSRanker hr = new HITSRanker("pagerank/linksDavis.txt", "pagerank/davisTitles.txt", null);
                 // hr.rank();
                 _list = hr.rank(_list);
-                _list.sort();
+                _list.sortScore();
                 result = _list;
                 // result.deduplication();
             }
@@ -156,7 +150,7 @@ public class Searcher {
                     }
                     // assign score(tf_idf) to _list and sort the result
                     tf_idf_score(tf, _list);
-                    _list.sort();
+                    _list.sortScore();
                 }
 
                 if (rankingType == RankingType.TF_IDF) {
@@ -170,7 +164,7 @@ public class Searcher {
                             double score = w1 * pageRank.get(filename) + (1 - w1) * (_list.get(i).score);
                             _list.get(i).setScore(score);
                         }
-                        _list.sort();
+                        _list.sortScore();
                     }
                     result = _list;
                 }
@@ -210,6 +204,30 @@ public class Searcher {
             //
         }
 
+    }
+
+    public PostingsList unionPostinglist(Query query) {
+        PostingsList result = new PostingsList();
+        //System.err.println("query size: " + query.size());
+        if (query.size() != 0) {
+            for (int j = 0; j < query.size(); j++) {
+                String term = query.queryterm.get(j).term;
+                PostingsList listUnion = new PostingsList();
+                // System.err.println(term);
+                if (result.size() == 0) {
+                    result = index.getPostings(term);
+                } else {
+                    listUnion = index.getPostings(term);
+                    // listIntersect.deduplication();
+                    result = result.union(listUnion);
+                }
+            }
+        }
+
+        result.sortDocId();
+        result.deduplication();
+
+        return result;
     }
 
     // read page rank from file to a hashtable

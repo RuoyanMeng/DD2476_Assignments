@@ -29,7 +29,7 @@ public class Engine {
     /**
      * K-gram index
      */
-    KGramIndex kgIndex;
+    KGramIndex kgIndex = new KGramIndex(2);
 
     /**
      * The searcher used to search the index.

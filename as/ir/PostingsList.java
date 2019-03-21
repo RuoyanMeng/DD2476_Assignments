@@ -110,6 +110,7 @@ public class PostingsList {
             }
         }
         
+        
         return _list;
     }
 
@@ -183,9 +184,18 @@ public class PostingsList {
         }
     }
 
-    public void sort(){
+    public void sortScore(){
         Collections.sort(list);
     }
+
+    public void sortDocId(){
+        Collections.sort(list, new Comparator<PostingsEntry>(){
+            @Override
+            public int compare(PostingsEntry o1, PostingsEntry o2) {
+                return o1.docID - o2.docID ;
+            }});
+    }
+    
 
 
     

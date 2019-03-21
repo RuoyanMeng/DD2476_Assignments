@@ -47,7 +47,7 @@ public class Indexer {
     }
 
 
-
+    
     /**
      *  Tokenizes and indexes the file @code{f}. If <code>f</code> is a directory,
      *  all its files and subdirectories are recursively processed.
@@ -96,8 +96,11 @@ public class Indexer {
      */
     public void insertIntoIndex( int docID, String token, int offset ) {
         index.insert( token, docID, offset );
+        
         if (kgIndex != null)
             kgIndex.insert(token);
+            //System.err.println(token);
+            
     }
 
     //read link to doc ID file
