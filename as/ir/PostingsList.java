@@ -144,7 +144,7 @@ public class PostingsList {
         return result;
     }
 
-    public PostingsList union(PostingsList listUnion){
+    public PostingsList union( PostingsList listUnion){
         PostingsList result = new PostingsList();
         Hashtable<Integer, ArrayList<Integer>> table = new Hashtable<Integer, ArrayList<Integer>>();
         for(int i=0;i<list.size();i++){
@@ -152,18 +152,32 @@ public class PostingsList {
                 table.put(list.get(i).docID, new ArrayList<Integer>());
                 result.addElements(list.get(i).docID, list.get(i).offset, list.get(i).score);
             }
-            //table.get(list.get(i).docID).add(list.get(i).offset);
+            table.get(list.get(i).docID).add(list.get(i).offset);
         }
         for(int i=0;i<listUnion.size();i++){
             if (!table.containsKey(listUnion.get(i).docID)){
                 table.put(listUnion.get(i).docID,new ArrayList<Integer>());
                 result.addElements(listUnion.get(i).docID, listUnion.get(i).offset, listUnion.get(i).score);
             }
-            //table.get(listUnion.get(i).docID).add(listUnion.get(i).offset);
+            table.get(listUnion.get(i).docID).add(listUnion.get(i).offset);
         }
         table.clear();
         return result;
     }
+
+    // , Hashmap<Integer,ArrayList<Double>> phasequeryMap
+    public PostingsList unionForPhasequery( PostingsList listUnion){
+        PostingsList result = new PostingsList();
+
+        for(int i=0;i<list.size();i++){
+            result.addElements(list.get(i).docID, list.get(i).offset, list.get(i).score);
+        }
+        for(int i=0;i<listUnion.size();i++){
+            result.addElements(listUnion.get(i).docID, listUnion.get(i).offset, listUnion.get(i).score);
+        }
+        return result;
+    }
+
 
     //term freq and tf_idf value
     public void _tf_idf(Hashtable<Integer,ArrayList<Double>> tf,double idf,PostingsList _list, int count){
@@ -195,7 +209,6 @@ public class PostingsList {
                 return o1.docID - o2.docID ;
             }});
     }
-    
 
 
     

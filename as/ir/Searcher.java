@@ -60,7 +60,9 @@ public class Searcher {
                     if (token.contains("*")) {
                         Query _query = new Query();
                         _query = kgIndex.getWordofWildcard(token);
-                        listWildcard = unionPostinglist(_query);
+                        listWildcard = unionPostinglist(_query,queryType);
+                        listWildcard.deduplication();
+                        listWildcard.sortDocId();
                     } else {
                         listWildcard = index.getPostings(token);
                     }
@@ -78,28 +80,69 @@ public class Searcher {
             }
             list.deduplication();
             result = list;
+
         } else if (queryType == QueryType.PHRASE_QUERY) {
             PostingsList list = new PostingsList();
             int count = 0;
             for (int i = 0; i < query.size(); i++) {
                 String token = query.queryterm.get(i).term;
                 PostingsList listPhrase = new PostingsList();
+
+                // Processing Wildcard Queries
+                PostingsList listWildcard = new PostingsList();
+                if (token.contains("*")) {
+                    Query _query = new Query();
+                    _query = kgIndex.getWordofWildcard(token);
+                    listWildcard = unionPostinglist(_query,queryType);
+                    // listWildcard.deduplication();
+                    // listWildcard.sortDocId();
+                } else {
+                    listWildcard = index.getPostings(token);
+                }
+
                 if (list.size() == 0 && count == 0) {
-                    list = index.getPostings(token);
+                    list = listWildcard;
                 } else {
                     count++;
-                    listPhrase = index.getPostings(token);
+                    listPhrase = listWildcard;
                     list = list.phaseIntersect(listPhrase, count);
                 }
             }
             list.deduplication();
             result = list;
         } else if (queryType == QueryType.RANKED_QUERY) {
-
             readPagerank("./PagerankScore.txt");
             PostingsList _list = new PostingsList();
+
+            // processing Wildcard Queries
             // union the search results of each term
-            _list = unionPostinglist(query);
+            PostingsList listWildcard = new PostingsList();
+            Query _query = new Query();
+            for (int i = 0; i < query.size(); i++) {
+                String token = query.queryterm.get(i).term;
+                PostingsList listPhrase = new PostingsList();
+
+                if (token.contains("*")) {
+                    Query queries = new Query();
+                    queries = kgIndex.getWordofWildcard(token);
+                    _query.addQueries(_query, queries);
+                    listWildcard = unionPostinglist(queries,queryType);
+                    listWildcard.deduplication();
+                } else {
+                    listWildcard = index.getPostings(token);
+                    _query.addTerm(token);
+                }
+
+                if (_list.size() == 0 ) {
+                    _list = listWildcard;
+                } else {
+                    listPhrase = listWildcard;
+                    _list = _list.union(listPhrase);
+                }
+            }
+            query = _query;
+           // _list.deduplication();
+            System.err.println(_list.size());
 
             // switch between different ranking types
             if (rankingType == RankingType.PAGERANK) {
@@ -113,6 +156,7 @@ public class Searcher {
                     }
                     _list.sortScore();
                 }
+                _list.deduplication();
                 result = _list;
             } else if (rankingType == RankingType.HITS) {
 
@@ -126,6 +170,7 @@ public class Searcher {
             // tf_idf and combination
             else {
                 Hashtable<Integer, ArrayList<Double>> tf = new Hashtable<Integer, ArrayList<Double>>();
+
                 // initialize hashtable of term freq - tf
                 for (int i = 0; i < _list.size(); i++) {
                     if (!tf.containsKey(_list.get(i).docID)) {
@@ -154,6 +199,7 @@ public class Searcher {
                 }
 
                 if (rankingType == RankingType.TF_IDF) {
+                    _list.deduplication();
                     result = _list;
                 } else if (rankingType == RankingType.COMBINATION) {
                     if (query.size() != 0) {
@@ -206,9 +252,9 @@ public class Searcher {
 
     }
 
-    public PostingsList unionPostinglist(Query query) {
+    public PostingsList unionPostinglist(Query query,QueryType queryType) {
         PostingsList result = new PostingsList();
-        //System.err.println("query size: " + query.size());
+        // System.err.println("query size: " + query.size());
         if (query.size() != 0) {
             for (int j = 0; j < query.size(); j++) {
                 String term = query.queryterm.get(j).term;
@@ -219,13 +265,18 @@ public class Searcher {
                 } else {
                     listUnion = index.getPostings(term);
                     // listIntersect.deduplication();
-                    result = result.union(listUnion);
+                    if(queryType == QueryType.PHRASE_QUERY){
+                        //HashMap<Integer, ArrayList<Integer>> phasequeryMap = new Hashmap<Integer, ArrayList<Integer>>();
+                        result = result.unionForPhasequery(listUnion);
+                    }else{
+                        result = result.union(listUnion);
+                    }
+                    
                 }
             }
         }
 
-        result.sortDocId();
-        result.deduplication();
+        // result.deduplication();
 
         return result;
     }

@@ -76,6 +76,12 @@ public class Query {
         queryterm.add(new QueryTerm(term, 1.0));
     }
 
+    public void addQueries(Query query, Query queries){
+        for (int i=0;i<queries.size();i++){
+            query.addTerm(queries.queryterm.get(i).term);
+        }
+    }
+
     
 
     /**
