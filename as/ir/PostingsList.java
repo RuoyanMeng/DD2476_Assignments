@@ -12,6 +12,7 @@ import java.util.Hashtable;
 import java.util.Collections;
 import java.util.Comparator;
 //import com.sun.tools.sjavac.comp.dependencies.PublicApiCollector;
+import java.util.HashMap;
 
 public class PostingsList {
     /**
@@ -165,7 +166,7 @@ public class PostingsList {
         return result;
     }
 
-    // , Hashmap<Integer,ArrayList<Double>> phasequeryMap
+    // 
     public PostingsList unionForPhasequery( PostingsList listUnion){
         PostingsList result = new PostingsList();
 
@@ -175,6 +176,8 @@ public class PostingsList {
         for(int i=0;i<listUnion.size();i++){
             result.addElements(listUnion.get(i).docID, listUnion.get(i).offset, listUnion.get(i).score);
         }
+       
+
         return result;
     }
 
@@ -196,6 +199,17 @@ public class PostingsList {
                 tf.get(_list.get(i).docID).add(count,tf_idf);
             }
         }
+    }
+
+    public HashMap generateHashMap(HashMap<Integer, ArrayList<Integer>> listMapPhrase){
+        //HashMap<Integer, ArrayList<Integer>> listmap = new HashMap<Integer, ArrayList<Integer>>();
+        for (int i = 0; i < list.size(); i++) {
+            if (!listMapPhrase.containsKey(list.get(i).docID)) {
+                listMapPhrase.put(list.get(i).docID, new ArrayList<Integer>());
+            }
+            listMapPhrase.get(list.get(i).docID).add(list.get(i).offset);
+        }
+        return listMapPhrase;
     }
 
     public void sortScore(){
