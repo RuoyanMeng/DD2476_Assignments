@@ -49,33 +49,38 @@ public class Searcher {
 
         // INTERSECTION_QUERY
         if (queryType == QueryType.INTERSECTION_QUERY) {
+            HashMap<Integer, ArrayList<Integer>> queriesList = new HashMap<Integer, ArrayList<Integer>>();
             PostingsList list = new PostingsList();
             if (query.size() != 0) {
                 for (int i = 0; i < query.size(); i++) {
                     String token = query.queryterm.get(i).term;
-                    PostingsList listIntersect = new PostingsList();
+                    //PostingsList listIntersect = new PostingsList();
+                    HashMap<Integer, ArrayList<Integer>> listMapIntersect = new HashMap<Integer, ArrayList<Integer>>();
+                    listMapIntersect = unionPostinglist(token);
 
                     // Processing Wildcard Queries
-                    PostingsList listWildcard = new PostingsList();
-                    if (token.contains("*")) {
-                        Query _query = new Query();
-                        _query = kgIndex.getWordofWildcard(token);
-                        listWildcard = unionPostinglist(_query,queryType);
-                        listWildcard.deduplication();
-                        listWildcard.sortDocId();
-                    } else {
-                        listWildcard = index.getPostings(token);
-                    }
+                    // PostingsList listWildcard = new PostingsList();
+                    // if (token.contains("*")) {
+                    // Query _query = new Query();
+                    // _query = kgIndex.getWordofWildcard(token);
+                    // listWildcard = unionPostinglist(_query,queryType);
+                    // listWildcard.deduplication();
+                    // listWildcard.sortDocId();
+                    // } else {
+                    // listWildcard = index.getPostings(token);
+                    // }
 
-                    if (list.size() == 0) {
-                        list = listWildcard;
-                        if (query.size() == 0) {
-                            list = list.intersect(listIntersect);
+                    if (queriesList.size() == 0) {
+                        queriesList = listMapIntersect;
+                        if (queriesList.size() == 0) {
+                            queriesList = list.intersect(queriesList, listMapIntersect);
                         }
                     } else {
-                        listIntersect = listWildcard;
-                        list = list.intersect(listIntersect);
+                        queriesList = list.intersect(queriesList,listMapIntersect);
                     }
+                }
+                for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
+                    list.addElements(entry.getKey(), 1, 1.0);
                 }
             }
             list.deduplication();
@@ -85,66 +90,52 @@ public class Searcher {
             PostingsList list = new PostingsList();
             int count = 0;
 
-            //rewrite phase_query
+            // rewrite phase_query
             HashMap<Integer, ArrayList<Integer>> queriesList = new HashMap<Integer, ArrayList<Integer>>();
-            for (int i=0;i<query.size();i++){
+            for (int i = 0; i < query.size(); i++) {
                 String token = query.queryterm.get(i).term;
-                PostingsList listPhrase = new PostingsList();
+                //PostingsList listPhrase = new PostingsList();
                 HashMap<Integer, ArrayList<Integer>> listMapPhrase = new HashMap<Integer, ArrayList<Integer>>();
-                if (token.contains("*")) {
-                    Query _query = new Query();
-                    _query = kgIndex.getWordofWildcard(token);
-                    for (int j = 0; j < _query.size(); j++) {
-                        String term = _query.queryterm.get(j).term;
-                        // System.err.println(term);
-                        listPhrase = index.getPostings(term);
-                        listMapPhrase = listPhrase.generateHashMap(listMapPhrase);
-                        
-                    }
-                } else {
-                    listPhrase = index.getPostings(token);
-                    listMapPhrase = listPhrase.generateHashMap(listMapPhrase);
-                }
+                listMapPhrase = unionPostinglist(token);
 
                 if (queriesList.size() == 0 && count == 0) {
-                    queriesList=listMapPhrase;
-                    //System.err.println("00:"+queriesList.size());
+                    queriesList = listMapPhrase;
+                    // System.err.println("00:"+queriesList.size());
                 } else {
                     count++;
-                    //System.err.println("before"+queriesList.size());
-                    queriesList = phaseMapIntersect(queriesList,listMapPhrase,count);
-                    //System.err.println("after"+queriesList.size());
+                    // System.err.println("before"+queriesList.size());
+                    queriesList = list.phaseMapIntersect(queriesList, listMapPhrase, count);
+                    // System.err.println("after"+queriesList.size());
                 }
 
-               
-                //listMapPhrase.clear();
+                // listMapPhrase.clear();
             }
-            for(Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()){
+            for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
                 list.addElements(entry.getKey(), 1, 1.0);
             }
 
             //
             // for (int i = 0; i < query.size(); i++) {
-            //     String token = query.queryterm.get(i).term;
-            //     PostingsList listPhrase = new PostingsList();
+            // String token = query.queryterm.get(i).term;
+            // PostingsList listPhrase = new PostingsList();
 
-            //     // Processing Wildcard Queries
-            //     PostingsList listWildcard = new PostingsList();
-            //     if (token.contains("*")) {
-            //         Query _query = new Query();
-            //         _query = kgIndex.getWordofWildcard(token);
-            //         listWildcard = unionPostinglist(_query,queryType);
-            //     } else {
-            //         listWildcard = index.getPostings(token);
-            //     }
+            // // Processing Wildcard Queries
+            // PostingsList listWildcard = new PostingsList();
+            // if (token.contains("*")) {
+            // Query _query = new Query();
+            // _query = kgIndex.getWordofWildcard(token);
+            // listWildcard = unionPostinglist(_query,queryType);
+            // } else {
+            // listWildcard = index.getPostings(token);
+            // }
 
-            //     if (list.size() == 0 && count == 0) {
-            //         list = listWildcard;
-            //     } else {
-            //         count++;
-            //         listPhrase = listWildcard;
-            //         list = list.phaseIntersect(listPhrase, count);
-            //     }
+            // if (list.size() == 0 && count == 0) {
+            // list = listWildcard;
+            // } else {
+            // count++;
+            // listPhrase = listWildcard;
+            // list = list.phaseIntersect(listPhrase, count);
+            // }
             // }
             list.deduplication();
             result = list;
@@ -154,32 +145,35 @@ public class Searcher {
 
             // processing Wildcard Queries
             // union the search results of each term
-            PostingsList listWildcard = new PostingsList();
+            HashMap<Integer, ArrayList<Integer>> queriesList = new HashMap<Integer, ArrayList<Integer>>();
             Query _query = new Query();
             for (int i = 0; i < query.size(); i++) {
                 String token = query.queryterm.get(i).term;
-                PostingsList listPhrase = new PostingsList();
-
+                HashMap<Integer, ArrayList<Integer>> listMapIntersect = new HashMap<Integer, ArrayList<Integer>>();
+                listMapIntersect = unionPostinglist(token);
+                System.err.println("listMapIntersect: "+listMapIntersect.size());
+                
                 if (token.contains("*")) {
                     Query queries = new Query();
                     queries = kgIndex.getWordofWildcard(token);
-                    _query.addQueries(_query, queries);
-                    listWildcard = unionPostinglist(queries,queryType);
-                    listWildcard.deduplication();
+                    _query.addQueries(_query, queries);  
                 } else {
-                    listWildcard = index.getPostings(token);
                     _query.addTerm(token);
                 }
 
-                if (_list.size() == 0 ) {
-                    _list = listWildcard;
+                if (queriesList.size() == 0) {
+                    queriesList = listMapIntersect;
                 } else {
-                    listPhrase = listWildcard;
-                    _list = _list.union(listPhrase);
+                    System.err.println("queriesList: "+queriesList.size());
+                    queriesList = _list.union(queriesList,listMapIntersect);
+                    System.err.println("queriesList: "+queriesList.size());
                 }
             }
+            for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
+                _list.addElements(entry.getKey(), 1, 1.0);
+            }
             query = _query;
-           // _list.deduplication();
+            // _list.deduplication();
             System.err.println(_list.size());
 
             // switch between different ranking types
@@ -290,64 +284,49 @@ public class Searcher {
 
     }
 
-    public PostingsList unionPostinglist(Query query,QueryType queryType) {
-        PostingsList result = new PostingsList();
-        // System.err.println("query size: " + query.size());
-        if (query.size() != 0) {
-            for (int j = 0; j < query.size(); j++) {
-                String term = query.queryterm.get(j).term;
-                PostingsList listUnion = new PostingsList();
-                // System.err.println(term);
-                if (result.size() == 0) {
-                    result = index.getPostings(term);
-                } else {
-                    listUnion = index.getPostings(term);
-                    // listIntersect.deduplication();
-                    if(queryType == QueryType.PHRASE_QUERY){
-                        
-                        result = result.unionForPhasequery(listUnion);
-                    }else{
-                        result = result.union(listUnion);
-                    }
-                    
-                }
-            }
-        }
+    // public PostingsList unionPostinglist(Query query,QueryType queryType) {
+    // PostingsList result = new PostingsList();
+    // // System.err.println("query size: " + query.size());
+    // if (query.size() != 0) {
+    // for (int j = 0; j < query.size(); j++) {
+    // String term = query.queryterm.get(j).term;
+    // PostingsList listUnion = new PostingsList();
+    // // System.err.println(term);
+    // if (result.size() == 0) {
+    // result = index.getPostings(term);
+    // } else {
+    // listUnion = index.getPostings(term);
+    // // listIntersect.deduplication();
+    // result = result.union(listUnion);
+    // }
+    // }
+    // }
 
-        // result.deduplication();
+    // // result.deduplication();
 
-        return result;
-    }
+    // return result;
+    // }
 
-    //phaseMapIntersect
-    public HashMap phaseMapIntersect(HashMap<Integer, ArrayList<Integer>> queriesList,HashMap<Integer, ArrayList<Integer>> listMapPhrase,int count ){
+
+    public HashMap unionPostinglist(String token) {
         HashMap<Integer, ArrayList<Integer>> result = new HashMap<Integer, ArrayList<Integer>>();
-        
-        if(queriesList.size()<listMapPhrase.size()){
-            for(Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()){
-                if(listMapPhrase.containsKey(entry.getKey())){
-                    ArrayList<Integer> _offset = listMapPhrase.get(entry.getKey());
-                    for (int n = 0; n < _offset.size(); n++) {
-                        if (entry.getValue().contains(_offset.get(n)-count) ) {
-                            result.put(entry.getKey(),entry.getValue());
-                        }
-                    }
-                }
+        PostingsList listPhrase = new PostingsList();
+        if (token.contains("*")) {
+            Query _query = new Query();
+            _query = kgIndex.getWordofWildcard(token);
+            for (int j = 0; j < _query.size(); j++) {
+                String term = _query.queryterm.get(j).term;
+                // System.err.println(term);
+                listPhrase = index.getPostings(term);
+                result = listPhrase.generateHashMap(result);
             }
-        }else{
-            for(Map.Entry<Integer, ArrayList<Integer>> entry : listMapPhrase.entrySet()){
-                if(queriesList.containsKey(entry.getKey())){
-                    ArrayList<Integer> _offset = queriesList.get(entry.getKey());
-                    for (int n = 0; n < _offset.size(); n++) {
-                        if (entry.getValue().contains(_offset.get(n)+count) ) {
-                            result.put(entry.getKey(),_offset);
-                        }
-                    }
-                }
-            }
-        }  
+        } else {
+            listPhrase = index.getPostings(token);
+            result = listPhrase.generateHashMap(result);
+        }
         return result;
     }
+
 
     // read page rank from file to a hashtable
     Hashtable<String, Double> pageRank = new Hashtable<String, Double>();
