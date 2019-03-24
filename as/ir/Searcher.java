@@ -47,28 +47,22 @@ public class Searcher {
     public PostingsList search(Query query, QueryType queryType, RankingType rankingType) {
         PostingsList result = new PostingsList();
 
+
+
         // INTERSECTION_QUERY
         if (queryType == QueryType.INTERSECTION_QUERY) {
             HashMap<Integer, ArrayList<Integer>> queriesList = new HashMap<Integer, ArrayList<Integer>>();
             PostingsList list = new PostingsList();
             if (query.size() != 0) {
                 for (int i = 0; i < query.size(); i++) {
+                    
                     String token = query.queryterm.get(i).term;
-                    //PostingsList listIntersect = new PostingsList();
+                    if(index.getPostings(token)==null){
+                        return null;
+                    }
+
                     HashMap<Integer, ArrayList<Integer>> listMapIntersect = new HashMap<Integer, ArrayList<Integer>>();
                     listMapIntersect = unionPostinglist(token);
-
-                    // Processing Wildcard Queries
-                    // PostingsList listWildcard = new PostingsList();
-                    // if (token.contains("*")) {
-                    // Query _query = new Query();
-                    // _query = kgIndex.getWordofWildcard(token);
-                    // listWildcard = unionPostinglist(_query,queryType);
-                    // listWildcard.deduplication();
-                    // listWildcard.sortDocId();
-                    // } else {
-                    // listWildcard = index.getPostings(token);
-                    // }
 
                     if (queriesList.size() == 0) {
                         queriesList = listMapIntersect;
@@ -114,29 +108,6 @@ public class Searcher {
                 list.addElements(entry.getKey(), 1, 1.0);
             }
 
-            //
-            // for (int i = 0; i < query.size(); i++) {
-            // String token = query.queryterm.get(i).term;
-            // PostingsList listPhrase = new PostingsList();
-
-            // // Processing Wildcard Queries
-            // PostingsList listWildcard = new PostingsList();
-            // if (token.contains("*")) {
-            // Query _query = new Query();
-            // _query = kgIndex.getWordofWildcard(token);
-            // listWildcard = unionPostinglist(_query,queryType);
-            // } else {
-            // listWildcard = index.getPostings(token);
-            // }
-
-            // if (list.size() == 0 && count == 0) {
-            // list = listWildcard;
-            // } else {
-            // count++;
-            // listPhrase = listWildcard;
-            // list = list.phaseIntersect(listPhrase, count);
-            // }
-            // }
             list.deduplication();
             result = list;
         } else if (queryType == QueryType.RANKED_QUERY) {

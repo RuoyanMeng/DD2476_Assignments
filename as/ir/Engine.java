@@ -39,7 +39,7 @@ public class Engine {
     /**
      * Spell checker
      */
-    SpellChecker speller;
+    SpellChecker speller = new SpellChecker(index, kgIndex);;
 
     /**
      * The engine GUI.

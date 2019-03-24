@@ -62,7 +62,6 @@ public class HashedIndex implements Index {
      * index.
      */
     public PostingsList getPostings(String token) {
-        //
 
         if (index.containsKey(token)) {
             return index.get(token);

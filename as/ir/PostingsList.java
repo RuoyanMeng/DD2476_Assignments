@@ -198,7 +198,6 @@ public class PostingsList {
         return result;
     }
 
-
     // public PostingsList union(PostingsList listUnion) {
     //     PostingsList result = new PostingsList();
     //     Hashtable<Integer, ArrayList<Integer>> table = new Hashtable<Integer, ArrayList<Integer>>();

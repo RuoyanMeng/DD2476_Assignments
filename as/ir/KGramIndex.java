@@ -166,6 +166,18 @@ public class KGramIndex {
         return query;
     }
 
+    public ArrayList getKgrams(String token){
+        int kgramNum = token.length() + 1 - getK();
+        ArrayList<String> kgrams = new  ArrayList<String>();
+        String kgram;
+        for(int i = 0; i < kgramNum; i++){
+            kgram = token.substring(i, i + getK());
+            kgrams.add(kgram);
+        }
+        return kgrams;
+    }
+
+
     private static HashMap<String, String> decodeArgs(String[] args) {
         HashMap<String, String> decodedArgs = new HashMap<String, String>();
         int i = 0, j = 0;

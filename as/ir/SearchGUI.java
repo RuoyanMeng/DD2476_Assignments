@@ -176,13 +176,14 @@ public class SearchGUI extends JFrame {
                         startTime = System.currentTimeMillis();
                         SpellingOptionsDialog dialog = new SpellingOptionsDialog(50);
                         String[] corrections = engine.speller.check(query, 10);
+                        elapsedTime = System.currentTimeMillis() - startTime;
+                        System.err.println("It took " + elapsedTime / 1000.0 + "s to check spelling");
                         if (corrections != null && corrections.length > 0) {
                             String choice = dialog.show(corrections, corrections[0]);
                             if (choice != null) {
                                 queryWindow.setText(choice);
                                 queryWindow.grabFocus();
-                                elapsedTime = System.currentTimeMillis() - startTime;
-                                System.err.println("It took " + elapsedTime / 1000.0 + "s to check spelling");
+
                                 this.actionPerformed(e);
                             }
                         }
@@ -303,7 +304,7 @@ public class SearchGUI extends JFrame {
 
                     for (int j = 0, sz = engine.dirNames.size(); j < sz; j++) {
                         File curDir = new File(engine.dirNames.get(j));
-                        //System.err.println(curDir);
+                        // System.err.println(curDir);
                         fqueue.offer(curDir.toString());
 
                         String[] directories = curDir.list(new FilenameFilter() {
@@ -312,11 +313,10 @@ public class SearchGUI extends JFrame {
                                 return new File(current, name).isDirectory();
                             }
                         });
-                        //System.err.println(directories);
-
+                        // System.err.println(directories);
 
                         for (String dir : directories) {
-                            
+
                             fqueue.offer(new File(curDir.toString(), dir).toString());
                         }
                     }
