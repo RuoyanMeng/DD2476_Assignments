@@ -47,7 +47,14 @@ public class Searcher {
     public PostingsList search(Query query, QueryType queryType, RankingType rankingType) {
         PostingsList result = new PostingsList();
 
-
+        if (query.size() != 0) {
+            for (int i = 0; i < query.size(); i++) {
+                String token = query.queryterm.get(i).term;
+                if (index.getPostings(token) == null && !token.contains("*")) {
+                    return null;
+                }
+            }
+        }
 
         // INTERSECTION_QUERY
         if (queryType == QueryType.INTERSECTION_QUERY) {
@@ -55,11 +62,10 @@ public class Searcher {
             PostingsList list = new PostingsList();
             if (query.size() != 0) {
                 for (int i = 0; i < query.size(); i++) {
-                    
+
                     String token = query.queryterm.get(i).term;
-                    if(index.getPostings(token)==null){
-                        return null;
-                    }
+                    // System.err.println(token);
+                    // System.err.println(index.getPostings(token));
 
                     HashMap<Integer, ArrayList<Integer>> listMapIntersect = new HashMap<Integer, ArrayList<Integer>>();
                     listMapIntersect = unionPostinglist(token);
@@ -70,7 +76,7 @@ public class Searcher {
                             queriesList = list.intersect(queriesList, listMapIntersect);
                         }
                     } else {
-                        queriesList = list.intersect(queriesList,listMapIntersect);
+                        queriesList = list.intersect(queriesList, listMapIntersect);
                     }
                 }
                 for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
@@ -88,7 +94,7 @@ public class Searcher {
             HashMap<Integer, ArrayList<Integer>> queriesList = new HashMap<Integer, ArrayList<Integer>>();
             for (int i = 0; i < query.size(); i++) {
                 String token = query.queryterm.get(i).term;
-                //PostingsList listPhrase = new PostingsList();
+                // PostingsList listPhrase = new PostingsList();
                 HashMap<Integer, ArrayList<Integer>> listMapPhrase = new HashMap<Integer, ArrayList<Integer>>();
                 listMapPhrase = unionPostinglist(token);
 
@@ -122,12 +128,12 @@ public class Searcher {
                 String token = query.queryterm.get(i).term;
                 HashMap<Integer, ArrayList<Integer>> listMapIntersect = new HashMap<Integer, ArrayList<Integer>>();
                 listMapIntersect = unionPostinglist(token);
-                System.err.println("listMapIntersect: "+listMapIntersect.size());
-                
+                System.err.println("listMapIntersect: " + listMapIntersect.size());
+
                 if (token.contains("*")) {
                     Query queries = new Query();
                     queries = kgIndex.getWordofWildcard(token);
-                    _query.addQueries(_query, queries);  
+                    _query.addQueries(_query, queries);
                 } else {
                     _query.addTerm(token);
                 }
@@ -135,9 +141,9 @@ public class Searcher {
                 if (queriesList.size() == 0) {
                     queriesList = listMapIntersect;
                 } else {
-                    System.err.println("queriesList: "+queriesList.size());
-                    queriesList = _list.union(queriesList,listMapIntersect);
-                    System.err.println("queriesList: "+queriesList.size());
+                    System.err.println("queriesList: " + queriesList.size());
+                    queriesList = _list.union(queriesList, listMapIntersect);
+                    System.err.println("queriesList: " + queriesList.size());
                 }
             }
             for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
@@ -278,7 +284,6 @@ public class Searcher {
     // return result;
     // }
 
-
     public HashMap unionPostinglist(String token) {
         HashMap<Integer, ArrayList<Integer>> result = new HashMap<Integer, ArrayList<Integer>>();
         PostingsList listPhrase = new PostingsList();
@@ -297,7 +302,6 @@ public class Searcher {
         }
         return result;
     }
-
 
     // read page rank from file to a hashtable
     Hashtable<String, Double> pageRank = new Hashtable<String, Double>();

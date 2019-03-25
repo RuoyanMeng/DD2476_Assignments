@@ -20,6 +20,13 @@ public class SpellChecker {
     /** K-gram index to be used by the spell checker */
     KGramIndex kgIndex;
 
+    // Searcher searcher=new Searcher(index, kgIndex);
+    Searcher searcher;
+
+    QueryType queryType = QueryType.INTERSECTION_QUERY;
+
+    RankingType rankingType = RankingType.TF_IDF;
+
     /**
      * The auxiliary class for containing the value of your ranking function for a
      * token
@@ -38,7 +45,7 @@ public class SpellChecker {
         }
 
         public int compareTo(Object other) {
-           
+
             return Double.compare(((KGramStat) other).score, this.score);
         }
 
@@ -59,9 +66,10 @@ public class SpellChecker {
      */
     private static final int MAX_EDIT_DISTANCE = 2;
 
-    public SpellChecker(Index index, KGramIndex kgIndex) {
+    public SpellChecker(Index index, KGramIndex kgIndex, Searcher searcher) {
         this.index = index;
         this.kgIndex = kgIndex;
+        this.searcher = searcher;
     }
 
     /**
@@ -138,60 +146,63 @@ public class SpellChecker {
      * <code>limit</code> ranked suggestions for spelling correction.
      */
     public String[] check(Query query, int limit) {
-        HashMap<String, KGramStat> correctedTerms = new HashMap<String, KGramStat>();
+        List<List<KGramStat>> qCorrections = new ArrayList<List<KGramStat>>();
+
         for (int i = 0; i < query.size(); i++) {
+            HashMap<String, KGramStat> correctedTerms = new HashMap<String, KGramStat>();
+            List<KGramStat> resultList = new ArrayList<KGramStat>();
             String token = query.queryterm.get(i).term;
             if (index.getPostings(token) == null) {
                 correctedTerms = getCorrectedTerms(token);
+                for (Map.Entry<String, KGramStat> entry : correctedTerms.entrySet()) {
+                    resultList.add(entry.getValue());
+                }
+                Collections.sort(resultList);
+                qCorrections.add(resultList);
+            } else {
+                resultList.add(new KGramStat(token, 1.0));
+                qCorrections.add(resultList);
             }
         }
 
-        int resultSize = correctedTerms.size();
-        ArrayList<KGramStat> resultList = new ArrayList<KGramStat>();
-        for(Map.Entry<String, KGramStat> entry : correctedTerms.entrySet()){
-            resultList.add(entry.getValue());
-        }
-        Collections.sort(resultList);
-
-        String[] result= new String[resultSize];
-        for(int i=0;i<resultSize;i++){
-            result[i] = resultList.get(i).token;
+        List<KGramStat> suggestions = new ArrayList<KGramStat>();
+        suggestions = mergeCorrections(qCorrections, limit);
+        String[] result = new String[suggestions.size()];
+        for (int i = 0; i < suggestions.size(); i++) {
+            result[i] = suggestions.get(i).token;
         }
 
+        hodingTerms.clear();
         return result;
     }
 
     public HashMap getCorrectedTerms(String token) {
         int kgramNum = token.length() + 1 - kgIndex.getK();
         String kgram;
-        List<KGramPostingsEntry> postings = null;
+
         HashMap<String, KGramStat> correctedTerms = new HashMap<String, KGramStat>();
 
         ArrayList<String> kgrams_q = new ArrayList<String>();
         kgrams_q = kgIndex.getKgrams(token);
         for (int i = 0; i < kgramNum; i++) {
             kgram = token.substring(i, i + kgIndex.getK());
-            //System.err.println(kgram);
+            List<KGramPostingsEntry> postings = new ArrayList<KGramPostingsEntry>();
 
-            if (postings == null) {
-                postings =kgIndex.getPostings(kgram);
-                generateTermsMap(token, correctedTerms, postings, kgrams_q);
-            } else {
-                postings = kgIndex.getPostings(kgram);
-                generateTermsMap(token, correctedTerms, postings, kgrams_q);
-            }
+            postings = kgIndex.getPostings(kgram);
+            generateTermsMap(token, correctedTerms, postings, kgrams_q);
+
         }
-        System.err.println("correctedTerms size: "+correctedTerms.size());
+        System.err.println("correctedTerms size: " + correctedTerms.size());
 
         return correctedTerms;
     }
 
     HashMap<String, Boolean> hodingTerms = new HashMap<String, Boolean>();
+
     public void generateTermsMap(String token, HashMap<String, KGramStat> correctedTerms,
             List<KGramPostingsEntry> postings, ArrayList<String> kgrams_q) {
-        //HashMap<String, KGramStat> results = new HashMap<String, List<KGramStat>>();
-        //results = correctedTerms;
-        String term ;
+
+        String term;
         for (int i = 0; i < postings.size(); i++) {
             int szA = kgrams_q.size();
             term = kgIndex.getTermByID(postings.get(i).tokenID);
@@ -206,16 +217,16 @@ public class SpellChecker {
                         int editDistance = editDistance(token, term);
                         if (editDistance <= MAX_EDIT_DISTANCE) {
                             double score = index.getPostings(term).size();
-                            KGramStat a = new KGramStat(term,score);
+                            KGramStat a = new KGramStat(term, score);
                             correctedTerms.put(term, a);
                         }
                     }
                 }
             }
-            //System.err.println("hh: "+ hh);
+            // System.err.println("hh: "+ hh);
             hodingTerms.put(term, true);
         }
-        //return results;
+        // return results;
     }
 
     /**
@@ -224,9 +235,97 @@ public class SpellChecker {
      * up to <code>limit</code> corrected phrases.
      */
     private List<KGramStat> mergeCorrections(List<List<KGramStat>> qCorrections, int limit) {
-        //
-        // YOUR CODE HERE
-        //
-        return null;
+        // List<KGramStat> resultList = new ArrayList<KGramStat>();
+        List<KGramStat> query = new ArrayList<KGramStat>();
+
+        for (int i = 0; i < qCorrections.size(); i++) {
+            int candidateSize = qCorrections.get(i).size();
+
+            // initialize
+            if (i == 0) {
+                if (candidateSize > 1) {
+                    if (candidateSize < limit) {
+                        for (int j = 0; j < candidateSize; j++) {
+                            String candidateToken = qCorrections.get(i).get(j).token;
+                            query.add(new KGramStat(candidateToken, 1.0));
+                        }
+                    } else {
+                        for (int j = 0; j < limit; j++) {
+                            String candidateToken = qCorrections.get(i).get(j).token;
+                            query.add(new KGramStat(candidateToken, 1.0));
+                        }
+                    }
+                } else {
+                    String candidateToken = qCorrections.get(i).get(0).token;
+                    query.add(new KGramStat(candidateToken, 1.0));
+                }
+            } else {
+                if (candidateSize > 1) {
+                    List<KGramStat> currentList = new ArrayList<KGramStat>();
+                    for (int j = 0; j < candidateSize; j++) {
+                        String candidateToken = qCorrections.get(i).get(j).token;
+                        for (int m = 0; m < query.size(); m++) {
+                            String query_candidate = query.get(m).token + " " + candidateToken;
+                            // System.err.println("query_candidate: "+query_candidate);
+                            PostingsList searchR = new PostingsList();
+                            Query _query = new Query(query_candidate);
+                            searchR = searcher.search(_query, queryType, rankingType);
+                            // System.err.println("score: "+searchR.size());
+                            // set score;
+                            currentList.add(new KGramStat(query_candidate, searchR.size()));
+                        }
+                    }
+                    Collections.sort(currentList);
+                    // System.err.println(currentList.size());
+                    if (currentList.size() < limit) {
+                        query.clear();
+                        for (int n = 0; n < currentList.size(); n++) {
+                            // add is ok here
+                            query.add(currentList.get(n));
+                        }
+                    } else {
+                        query.clear();
+                        for (int n = 0; n < limit; n++) {
+                            query.add(currentList.get(n));
+                        }
+                    }
+
+                } else {
+                    for (int m = 0; m < query.size(); m++) {
+                        String candidateToken = qCorrections.get(i).get(0).token;
+                        // System.err.println(candidateToken);
+                        String query_candidate = query.get(m).token + " " + candidateToken;
+                        query.set(m, new KGramStat(query_candidate, 1.0));
+                    }
+                    if (i == qCorrections.size() - 1) {
+                        List<KGramStat> currentList = new ArrayList<KGramStat>();
+                        for (int m = 0; m < query.size(); m++) {
+                            String query_candidate = query.get(m).token;
+                            PostingsList searchR = new PostingsList();
+                            Query _query = new Query(query_candidate);
+                            searchR = searcher.search(_query, queryType, rankingType);
+                            // set score;
+                            currentList.add(new KGramStat(query_candidate, searchR.size()));
+                        }
+                        Collections.sort(currentList);
+                        if (currentList.size() < limit) {
+                            query.clear();
+                            for (int n = 0; n < currentList.size(); n++) {
+                                // add is ok here
+                                query.add(currentList.get(n));
+                            }
+                        } else {
+                            query.clear();
+                            for (int n = 0; n < limit; n++) {
+                                query.add(currentList.get(n));
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        return query;
     }
 }
