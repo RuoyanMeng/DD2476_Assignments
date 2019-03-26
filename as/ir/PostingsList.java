@@ -177,10 +177,14 @@ public class PostingsList {
                 if (listMapPhrase.containsKey(entry.getKey())) {
                     ArrayList<Integer> _offset = listMapPhrase.get(entry.getKey());
                     for (int n = 0; n < _offset.size(); n++) {
-                        if (entry.getValue().contains(_offset.get(n) - count)) {
-                            result.put(entry.getKey(), entry.getValue());
+                        if (entry.getValue().contains(_offset.get(n) - 1)) {
+                            if(!result.containsKey(entry.getKey())){
+                                result.put(entry.getKey(), new ArrayList<Integer>());
+                            }
+                            result.get(entry.getKey()).add(_offset.get(n));
                         }
                     }
+                    
                 }
             }
         } else {
@@ -188,10 +192,14 @@ public class PostingsList {
                 if (queriesList.containsKey(entry.getKey())) {
                     ArrayList<Integer> _offset = queriesList.get(entry.getKey());
                     for (int n = 0; n < _offset.size(); n++) {
-                        if (entry.getValue().contains(_offset.get(n) + count)) {
-                            result.put(entry.getKey(), _offset);
+                        if (entry.getValue().contains(_offset.get(n) + 1)) {
+                            if(!result.containsKey(entry.getKey())){
+                                result.put(entry.getKey(), new ArrayList<Integer>());
+                            }
+                            result.get(entry.getKey()).add(_offset.get(n) + 1);
                         }
                     }
+                    
                 }
             }
         }
@@ -243,24 +251,6 @@ public class PostingsList {
         return result;
     }
 
-    // term freq and tf_idf value
-    public void _tf_idf(Hashtable<Integer, ArrayList<Double>> tf, double idf, PostingsList _list, int count) {
-        Hashtable<Integer, ArrayList<Integer>> table = new Hashtable<Integer, ArrayList<Integer>>();
-        for (int i = 0; i < list.size(); i++) {
-            if (!table.containsKey(list.get(i).docID)) {
-                table.put(list.get(i).docID, new ArrayList<Integer>());
-            }
-            table.get(list.get(i).docID).add(list.get(i).offset);
-        }
-
-        for (int i = 0; i < _list.size(); i++) {
-            if (table.containsKey(_list.get(i).docID)) {
-                double tf_idf = 0.0;
-                tf_idf = idf * (table.get(_list.get(i).docID).size());
-                tf.get(_list.get(i).docID).add(count, tf_idf);
-            }
-        }
-    }
 
     public HashMap generateHashMap(HashMap<Integer, ArrayList<Integer>> listMapPhrase) {
         // HashMap<Integer, ArrayList<Integer>> listmap = new HashMap<Integer,

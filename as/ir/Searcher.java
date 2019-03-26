@@ -83,6 +83,7 @@ public class Searcher {
                     list.addElements(entry.getKey(), 1, 1.0);
                 }
             }
+            queriesList.clear();
             list.deduplication();
             result = list;
 
@@ -103,9 +104,10 @@ public class Searcher {
                     // System.err.println("00:"+queriesList.size());
                 } else {
                     count++;
-                    // System.err.println("before"+queriesList.size());
+                    System.err.println(count);
+                    System.err.println("before"+queriesList.size());
                     queriesList = list.phaseMapIntersect(queriesList, listMapPhrase, count);
-                    // System.err.println("after"+queriesList.size());
+                    System.err.println("after"+queriesList.size());
                 }
 
                 // listMapPhrase.clear();
@@ -113,7 +115,7 @@ public class Searcher {
             for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
                 list.addElements(entry.getKey(), 1, 1.0);
             }
-
+            queriesList.clear();
             list.deduplication();
             result = list;
         } else if (queryType == QueryType.RANKED_QUERY) {
@@ -128,7 +130,7 @@ public class Searcher {
                 String token = query.queryterm.get(i).term;
                 HashMap<Integer, ArrayList<Integer>> listMapIntersect = new HashMap<Integer, ArrayList<Integer>>();
                 listMapIntersect = unionPostinglist(token);
-                System.err.println("listMapIntersect: " + listMapIntersect.size());
+                //System.err.println("listMapIntersect: " + listMapIntersect.size());
 
                 if (token.contains("*")) {
                     Query queries = new Query();
@@ -141,17 +143,19 @@ public class Searcher {
                 if (queriesList.size() == 0) {
                     queriesList = listMapIntersect;
                 } else {
-                    System.err.println("queriesList: " + queriesList.size());
+                    //System.err.println("queriesList: " + queriesList.size());
                     queriesList = _list.union(queriesList, listMapIntersect);
-                    System.err.println("queriesList: " + queriesList.size());
+                    //System.err.println("queriesList: " + queriesList.size());
                 }
+                //listMapIntersect.clear();
             }
-            for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
-                _list.addElements(entry.getKey(), 1, 1.0);
-            }
+            // for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
+            //     _list.addElements(entry.getKey(), 1, 1.0);
+            // }
+            // queriesList.clear();
             query = _query;
             // _list.deduplication();
-            System.err.println(_list.size());
+            //System.err.println(_list.size());
 
             // switch between different ranking types
             if (rankingType == RankingType.PAGERANK) {
@@ -178,34 +182,23 @@ public class Searcher {
             }
             // tf_idf and combination
             else {
-                Hashtable<Integer, ArrayList<Double>> tf = new Hashtable<Integer, ArrayList<Double>>();
 
-                // initialize hashtable of term freq - tf
-                for (int i = 0; i < _list.size(); i++) {
-                    if (!tf.containsKey(_list.get(i).docID)) {
-                        tf.put(_list.get(i).docID, new ArrayList<Double>());
-                        for (int n = 0; n < query.size(); n++) {
-                            tf.get(_list.get(i).docID).add(n, 0.0);
+                for(Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()){
+                    HashMap<String, Integer> termFreq = new HashMap<String, Integer>();
+                    termFreq = Index.termFreq.get(entry.getKey());
+                    Double score = 0.0;
+                    for(int i=0;i<query.size();i++){
+                        String token = query.queryterm.get(i).term;
+                        if(termFreq.containsKey(token)){
+                            double idf = idf(token);
+                            idf = idf * query.queryterm.get(i).weight;
+                            double tf_idf = idf * termFreq.get(token)/Index.docLengths.get(entry.getKey());
+                            score = score+tf_idf;
                         }
                     }
+                    _list.addElements(entry.getKey(), 1, score);
                 }
-                // calculate tf_idf
-                if (query.size() != 0) {
-                    for (int i = 0; i < query.size(); i++) {
-                        String token = query.queryterm.get(i).term;
-                        PostingsList list = new PostingsList();
-                        list = index.getPostings(token);
-                        double idf = 0.0;
-                        idf = idf(list);
-                        // System.err.println("-"+idf);
-                        idf = idf * query.queryterm.get(i).weight;
-                        // System.err.println(idf);
-                        list._tf_idf(tf, idf, _list, i);
-                    }
-                    // assign score(tf_idf) to _list and sort the result
-                    tf_idf_score(tf, _list);
-                    _list.sortScore();
-                }
+
 
                 if (rankingType == RankingType.TF_IDF) {
                     _list.deduplication();
@@ -230,26 +223,18 @@ public class Searcher {
         return result;
     }
 
-    public double idf(PostingsList list) {
+    public double idf(String token) {
         double idf;
-        int df = 1;
-        for (int i = 0; i < list.size() - 1; i++) {
-            if (list.get(i).docID == list.get(i + 1).docID) {
-                df = df + 0;
-            } else {
-                df++;
-            }
-        }
-        // System.out.println(Index.docLengths.size());
+        int df = Index.docFreq.get(token);
         idf = Math.log10(Index.docLengths.size() / df);
         return idf;
     }
 
-    public void tf_idf_score(Hashtable<Integer, ArrayList<Double>> tf, PostingsList _list) {
+    public void tf_idf_score(Hashtable<Integer, HashMap<Integer,Double>> tf, PostingsList _list) {
         for (int i = 0; i < _list.size(); i++) {
             // System.out.println("list:"+_list.get(i).docID);
             double score = 0.0;
-            ArrayList<Double> _tf_idf = tf.get(_list.get(i).docID);
+            HashMap<Integer,Double> _tf_idf = tf.get(_list.get(i).docID);
             for (int n = 0; n < _tf_idf.size(); n++) {
                 score = score + _tf_idf.get(n) / Index.docLengths.get(_list.get(i).docID);
 
