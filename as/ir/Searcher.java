@@ -105,9 +105,9 @@ public class Searcher {
                 } else {
                     count++;
                     System.err.println(count);
-                    System.err.println("before"+queriesList.size());
+                    System.err.println("before" + queriesList.size());
                     queriesList = list.phaseMapIntersect(queriesList, listMapPhrase, count);
-                    System.err.println("after"+queriesList.size());
+                    System.err.println("after" + queriesList.size());
                 }
 
                 // listMapPhrase.clear();
@@ -130,7 +130,7 @@ public class Searcher {
                 String token = query.queryterm.get(i).term;
                 HashMap<Integer, ArrayList<Integer>> listMapIntersect = new HashMap<Integer, ArrayList<Integer>>();
                 listMapIntersect = unionPostinglist(token);
-                //System.err.println("listMapIntersect: " + listMapIntersect.size());
+                // System.err.println("listMapIntersect: " + listMapIntersect.size());
 
                 if (token.contains("*")) {
                     Query queries = new Query();
@@ -143,19 +143,19 @@ public class Searcher {
                 if (queriesList.size() == 0) {
                     queriesList = listMapIntersect;
                 } else {
-                    //System.err.println("queriesList: " + queriesList.size());
+                    // System.err.println("queriesList: " + queriesList.size());
                     queriesList = _list.union(queriesList, listMapIntersect);
-                    //System.err.println("queriesList: " + queriesList.size());
+                    // System.err.println("queriesList: " + queriesList.size());
                 }
-                //listMapIntersect.clear();
+                // listMapIntersect.clear();
             }
             // for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
-            //     _list.addElements(entry.getKey(), 1, 1.0);
+            // _list.addElements(entry.getKey(), 1, 1.0);
             // }
             // queriesList.clear();
             query = _query;
             // _list.deduplication();
-            //System.err.println(_list.size());
+            // System.err.println(_list.size());
 
             // switch between different ranking types
             if (rankingType == RankingType.PAGERANK) {
@@ -183,24 +183,29 @@ public class Searcher {
             // tf_idf and combination
             else {
 
-                for(Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()){
+                for (Map.Entry<Integer, ArrayList<Integer>> entry : queriesList.entrySet()) {
                     HashMap<String, Integer> termFreq = new HashMap<String, Integer>();
                     termFreq = Index.termFreq.get(entry.getKey());
                     Double score = 0.0;
-                    for(int i=0;i<query.size();i++){
+                    for (int i = 0; i < query.size(); i++) {
                         String token = query.queryterm.get(i).term;
-                        if(termFreq.containsKey(token)){
+                        if (termFreq.containsKey(token)) {
                             double idf = idf(token);
                             idf = idf * query.queryterm.get(i).weight;
-                            double tf_idf = idf * termFreq.get(token)/Index.docLengths.get(entry.getKey());
-                            score = score+tf_idf;
+                            double tf_idf = idf * termFreq.get(token) / Index.docLengths.get(entry.getKey());
+                            score = score + tf_idf;
                         }
                     }
                     _list.addElements(entry.getKey(), 1, score);
                 }
-
+                _list.sortScore();
 
                 if (rankingType == RankingType.TF_IDF) {
+                    // for (int i = 0; i < 50; i++) {
+                    //     String filename = Index.docNames.get(_list.get(i).docID);
+                    //     filename = filename.substring(filename.lastIndexOf("/") + 1);
+                    //     System.err.println(filename);
+                    // }
                     _list.deduplication();
                     result = _list;
                 } else if (rankingType == RankingType.COMBINATION) {
@@ -230,11 +235,11 @@ public class Searcher {
         return idf;
     }
 
-    public void tf_idf_score(Hashtable<Integer, HashMap<Integer,Double>> tf, PostingsList _list) {
+    public void tf_idf_score(Hashtable<Integer, HashMap<Integer, Double>> tf, PostingsList _list) {
         for (int i = 0; i < _list.size(); i++) {
             // System.out.println("list:"+_list.get(i).docID);
             double score = 0.0;
-            HashMap<Integer,Double> _tf_idf = tf.get(_list.get(i).docID);
+            HashMap<Integer, Double> _tf_idf = tf.get(_list.get(i).docID);
             for (int n = 0; n < _tf_idf.size(); n++) {
                 score = score + _tf_idf.get(n) / Index.docLengths.get(_list.get(i).docID);
 

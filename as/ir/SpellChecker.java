@@ -64,7 +64,7 @@ public class SpellChecker {
      * The threshold for edit distance for a candidate spelling correction to be
      * accepted.
      */
-    private static final int MAX_EDIT_DISTANCE = 2;
+    private static final int MAX_EDIT_DISTANCE = 6;
 
     public SpellChecker(Index index, KGramIndex kgIndex, Searcher searcher) {
         this.index = index;
@@ -211,7 +211,8 @@ public class SpellChecker {
                 kgrams_t = kgIndex.getKgrams(term);
                 int szB = kgrams_t.size();
                 boolean ret = kgrams_t.containsAll(kgrams_q);
-                if (kgrams_t.size() >= 2) {
+                //change JACCARD_THRESHOLD and MAX_EDIT_DISTANCE to get more suggestions 
+                if (kgrams_t.size() >= 1) {
                     double jaccard = jaccard(szA, szB, kgrams_t.size());
                     if (jaccard >= JACCARD_THRESHOLD) {
                         int editDistance = editDistance(token, term);
@@ -257,6 +258,7 @@ public class SpellChecker {
                     }
                 } else {
                     String candidateToken = qCorrections.get(i).get(0).token;
+
                     query.add(new KGramStat(candidateToken, 1.0));
                 }
             } else {
